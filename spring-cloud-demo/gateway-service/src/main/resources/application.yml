@@ -1,0 +1,70 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true  # 启用服务发现路由
+          lower-case-service-id: true  # 服务名小写
+      routes:
+        # 提供者服务路由
+        - id: provider-service
+          uri: lb://provider-service
+          predicates:
+            - Path=/api/provider/**
+          filters:
+            - StripPrefix=2  # 去掉前缀 /api/provider
+        
+        # 消费者服务路由
+        - id: consumer-service
+          uri: lb://consumer-service
+          predicates:
+            - Path=/api/consumer/**
+          filters:
+            - StripPrefix=2  # 去掉前缀 /api/consumer
+        
+        # Eureka管理界面路由
+        - id: eureka-server
+          uri: http://localhost:8761
+          predicates:
+            - Path=/eureka/**
+      
+      # 全局CORS配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: "*"
+            allowed-methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowed-headers: "*"
+            allow-credentials: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.cloud.gateway: debug
+    com.example.gateway: debug
